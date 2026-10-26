@@ -371,10 +371,31 @@
   <div class="wrap">© 우리동네 돌봄히어로 · 문의는 강동50플러스센터로 주세요</div>
 </footer>
 
+<script src="https://cdn.amplitude.com/libs/analytics-browser-2.20.0-min.js.gz"></script>
 <script>
+  // Amplitude 프로젝트 878963의 API 키 (비밀 키 아님)
+  var AMPLITUDE_API_KEY = "YOUR_AMPLITUDE_API_KEY";
+  var amp = window.amplitude && AMPLITUDE_API_KEY.indexOf("YOUR_") !== 0 ? window.amplitude : null;
+  if (amp) {
+    // 페이지 조회, 세션, 유입 경로(UTM 등)를 자동으로 수집
+    amp.init(AMPLITUDE_API_KEY, { autocapture: { pageViews: true, sessions: true, attribution: true, formInteractions: false, elementInteractions: false } });
+  }
+  function track(name, props) {
+    if (amp) amp.track(name, props);
+  }
+
+  // 지원 CTA 클릭: 어느 버튼이 지원을 이끄는지 비교
+  document.querySelectorAll('a[href="#apply"]').forEach(function (el, i) {
+    el.addEventListener("click", function () {
+      track("CTA Clicked", { cta_text: el.textContent.trim(), cta_position: i + 1 });
+    });
+  });
+
   document.getElementById("applyForm").addEventListener("submit", function (e) {
     e.preventDefault();
     // TODO: 실제 접수 엔드포인트(폼 전송 서비스 또는 백엔드)를 연결하세요.
+    // 이름·연락처는 개인정보라 보내지 않고, 자격 관련 값만 기록
+    track("Application Submitted", { age_group: this.age.value, district: this.district.value });
     this.querySelector(".submit").disabled = true;
     document.getElementById("thanks").style.display = "block";
   });
