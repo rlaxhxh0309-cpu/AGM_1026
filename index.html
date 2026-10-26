@@ -203,7 +203,7 @@
 <header>
   <nav class="wrap nav">
     <a class="logo" href="#top">우리동네 돌봄히어로</a>
-    <a class="btn-small" href="#apply">지원하기</a>
+    <a class="btn-small" href="#apply" data-cta-id="header">지원하기</a>
   </nav>
 </header>
 
@@ -218,7 +218,7 @@
         자녀 양육이나 유아 돌봄 경력이 있다면, 그 경험을 그대로 살릴 수 있어요.
         교육부터 가정 매칭까지 함께할게요.
       </p>
-      <a class="cta" href="#apply">지금 지원하기</a>
+      <a class="cta" href="#apply" data-cta-id="hero">지금 지원하기</a>
       <small>자격 조건이 맞는지 아래에서 먼저 확인해 보세요</small>
     </div>
   </div>
@@ -260,7 +260,7 @@
         </div>
       </div>
       <div class="center benefit-cta">
-        <a class="cta" href="#apply">혜택 보고 지원하기</a>
+        <a class="cta" href="#apply" data-cta-id="benefits">혜택 보고 지원하기</a>
       </div>
     </div>
   </section>
@@ -286,7 +286,7 @@
         <p style="color:var(--text-sub);margin-bottom:16px;">
           지원서를 보내 주시면 담당자가 확인 후 연락드려요. 자세한 일정은 상담 때 함께 맞춰 볼게요.
         </p>
-        <a class="cta" href="#apply" style="width:100%;text-align:center;">지원서 작성하기</a>
+        <a class="cta" href="#apply" data-cta-id="eligibility" style="width:100%;text-align:center;">지원서 작성하기</a>
       </div>
     </div>
   </section>
@@ -312,7 +312,7 @@
         </div>
       </div>
       <div class="center steps-cta">
-        <a class="cta" href="#apply">3단계 시작하기</a>
+        <a class="cta" href="#apply" data-cta-id="steps">3단계 시작하기</a>
       </div>
     </div>
   </section>
@@ -358,7 +358,7 @@
             <option>그 외 지역</option>
           </select>
         </label>
-        <button class="submit" type="submit">지원서 보내기</button>
+        <button class="submit" type="submit" data-cta-id="form_submit">지원서 보내기</button>
         <p class="note">제출하면 담당자가 확인 후 연락드려요.</p>
         <p class="thanks" id="thanks" role="status">지원해 주셔서 감사해요! 곧 연락드릴게요.</p>
       </form>
@@ -375,19 +375,40 @@
 <script>
   // Amplitude 프로젝트 878963의 API 키 (비밀 키 아님)
   var AMPLITUDE_API_KEY = "61ad857edab0f749e9b481a1595fb477";
-  var amp = window.amplitude && AMPLITUDE_API_KEY.indexOf("YOUR_") !== 0 ? window.amplitude : null;
+  // 배포 사이트(github.io)에서만 Amplitude로 전송하고, 로컬 테스트에서는 콘솔에만 기록
+  var IS_LIVE = /\.github\.io$/.test(location.hostname);
+  var amp = IS_LIVE && window.amplitude ? window.amplitude : null;
   if (amp) {
     // 페이지 조회, 세션, 유입 경로(UTM 등)를 자동으로 수집
     amp.init(AMPLITUDE_API_KEY, { autocapture: { pageViews: true, sessions: true, attribution: true, formInteractions: false, elementInteractions: false } });
   }
   function track(name, props) {
     if (amp) amp.track(name, props);
+    else console.info("[track]", name, JSON.stringify(props));
   }
 
-  // 지원 CTA 클릭: 어느 버튼이 지원을 이끄는지 비교
-  document.querySelectorAll('a[href="#apply"]').forEach(function (el, i) {
+  // 주요 CTA 노출·클릭: cta_id로 묶어 버튼별 클릭률(클릭 ÷ 노출)을 계산
+  var ctas = document.querySelectorAll("[data-cta-id]");
+  function ctaProps(el) {
+    return { cta_id: el.dataset.ctaId, cta_text: el.textContent.trim() };
+  }
+
+  // 노출: 버튼이 화면에 절반 이상 보이면 페이지 로드당 한 번만 기록
+  if ("IntersectionObserver" in window) {
+    var seen = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        track("CTA Viewed", ctaProps(entry.target));
+        seen.unobserve(entry.target);
+      });
+    }, { threshold: 0.5 });
+    ctas.forEach(function (el) { seen.observe(el); });
+  }
+
+  // 클릭
+  ctas.forEach(function (el) {
     el.addEventListener("click", function () {
-      track("CTA Clicked", { cta_text: el.textContent.trim(), cta_position: i + 1 });
+      track("CTA Clicked", ctaProps(el));
     });
   });
 

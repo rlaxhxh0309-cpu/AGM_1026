@@ -3,6 +3,9 @@
 .env.*
 !.env.example
 
+# Local preview config
+.claude/
+
 # Screenshot test harness (local only)
 frame_*.html
 probe.html
